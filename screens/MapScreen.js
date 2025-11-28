@@ -5,20 +5,23 @@ import { View, ActivityIndicator } from 'react-native';
 const API_URL = 'http://172.26.47.72:3000';
 
 export default function MapScreen() {
-  const [plantations, setPlantations] = useState([]);
+  const [occurrences, setOccurrences] = useState([]);
   const [region, setRegion] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
-      const res = await fetch(`${API_URL}/plantations`);
+      const res = await fetch(`${API_URL}/occurrences`);
       const data = await res.json();
-      setPlantations(data);
+      setOccurrences(data);
 
-      if (data.length > 0) {
-        const avgLat =
-          data.reduce((sum, p) => sum + Number(p.latitude), 0) / data.length;
-        const avgLng =
-          data.reduce((sum, p) => sum + Number(p.longitude), 0) / data.length;
+      // Filtra ocorrências com coordenadas válidas
+      const occurrencesWithCoords = data.filter(occ => 
+        occ.latitude && occ.longitude
+      );
+
+      if (occurrencesWithCoords.length > 0) {
+        const avgLat = occurrencesWithCoords.reduce((sum, p) => sum + Number(p.latitude), 0) / occurrencesWithCoords.length;
+        const avgLng = occurrencesWithCoords.reduce((sum, p) => sum + Number(p.longitude), 0) / occurrencesWithCoords.length;
 
         setRegion({
           latitude: avgLat,
@@ -43,18 +46,20 @@ export default function MapScreen() {
   return (
     <View style={{ flex: 1 }}>
       <MapView style={{ flex: 1 }} initialRegion={region}>
-        {plantations.map((p) => (
-          <Marker
-            key={p._id}
-            coordinate={{
-              latitude: Number(p.latitude),
-              longitude: Number(p.longitude),
-            }}
-            title={p.name}
-            description={p.description}
-            pinColor="green"
-          />
-        ))}
+        {occurrences
+          .filter(occ => occ.latitude && occ.longitude)
+          .map((occ) => (
+            <Marker
+              key={occ._id}
+              coordinate={{
+                latitude: Number(occ.latitude),
+                longitude: Number(occ.longitude),
+              }}
+              title={`Ocorrência: ${occ.codigoOcorrencia}`}
+              description={`Grupo: ${occ.grupo} - Vítimas: ${occ.numeroVitimas || 0}`}
+              pinColor="red"
+            />
+          ))}
       </MapView>
     </View>
   );
